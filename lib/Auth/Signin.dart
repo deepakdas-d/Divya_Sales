@@ -222,6 +222,10 @@ class Signin extends StatelessWidget {
                       Get.back();
 
                       if (result == null) {
+                        // ✅ Clear fields after successful login
+                        controller.emailOrPhoneController.clear();
+                        controller.passwordController.clear();
+
                         Get.offAll(() => Home());
                         Get.snackbar(
                           "Success",

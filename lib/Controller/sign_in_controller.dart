@@ -35,7 +35,7 @@ class SigninController extends GetxController {
   Future<String?> getEmailFromPhone(String phone) async {
     try {
       final query = await FirebaseFirestore.instance
-          .collection('Sales')
+          .collection('users')
           .where('phone', isEqualTo: phone)
           .limit(1)
           .get();
@@ -60,7 +60,7 @@ class SigninController extends GetxController {
       } else if (_isValidPhone(input)) {
         // Input is a phone number, query Firestore to find matching email
         QuerySnapshot query = await FirebaseFirestore.instance
-            .collection('Sales')
+            .collection('users')
             .where('phone', isEqualTo: input)
             .limit(1)
             .get();
@@ -85,19 +85,24 @@ class SigninController extends GetxController {
 
       // Verify Sales role in Firestore
       DocumentSnapshot salesDoc = await FirebaseFirestore.instance
-          .collection('Sales')
+          .collection('users')
           .doc(uid)
           .get();
 
       if (salesDoc.exists) {
         Map<String, dynamic> saleData = salesDoc.data() as Map<String, dynamic>;
 
-        if (saleData['role'] == 'Sales') {
-          print("Salesperson login verified.");
-          return null; // Allow login
+        if (saleData['role'] == "salesmen") {
+          if (saleData['isActive'] == true) {
+            print("Salesperson login verified.");
+            return null; // Allow login
+          } else {
+            await FirebaseAuth.instance.signOut();
+            return 'Access denied. Your account is inactive.';
+          }
         } else {
           await FirebaseAuth.instance.signOut();
-          return 'Access denied. You are not an Sales.';
+          return 'Access denied. You are not a Sales.';
         }
       } else {
         await FirebaseAuth.instance.signOut();
