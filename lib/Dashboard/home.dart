@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:flutter/material.dart';
 import 'package:sales/Auth/Signin.dart';
+import 'package:sales/Lead_Management/controller/Lead_Management.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -38,6 +39,24 @@ class _HomeState extends State<Home> {
         ],
       ),
       backgroundColor: Colors.white,
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Center(
+            child: SizedBox(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => LeadManagement()),
+                  );
+                },
+                child: Text("Lead Management"),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
