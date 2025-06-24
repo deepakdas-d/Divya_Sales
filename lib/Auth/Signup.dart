@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sales/Auth/Signin.dart';
-import 'package:sales/Auth/Controller/sign_up_controller.dart';
+import 'package:sales/Controller/sign_up_controller.dart';
 
 class Signup extends StatelessWidget {
   const Signup({super.key});

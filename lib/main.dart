@@ -2,9 +2,16 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:http/http.dart';
 import 'package:sales/Auth/Signin.dart';
+import 'package:sales/Screens/complaint.dart';
+import 'package:sales/Screens/followup.dart';
+import 'package:sales/Screens/leadmanagement.dart';
+import 'package:sales/Screens/order_managmenet.dart';
+import 'package:sales/Screens/profile.dart';
+import 'package:sales/Screens/review.dart';
 import 'package:sales/firebase_options.dart';
-import 'package:sales/Dashboard/home.dart';
+import 'package:sales/Screens/home.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,9 +28,21 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Divya Crafts',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
+        primarySwatch: Colors.blue,
+        fontFamily: 'Inter',
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
       ),
-      home: AuthWrapper(),
+      initialRoute: '/',
+      getPages: [
+        GetPage(name: '/', page: () => const AuthWrapper()),
+        GetPage(name: "/leadmanagment", page: () => Leadmanagement()),
+        GetPage(name: "/followup", page: () => const followup()),
+        GetPage(name: "/ordermanagement", page: () => OrderManagmenet()),
+        GetPage(name: "/review", page: () => Review()),
+        GetPage(name: "/complaint", page: () => Complaint()),
+        GetPage(name: "/profile", page: () => Profile()),
+        GetPage(name: "/login", page: () => Signin()),
+      ],
     );
   }
 }
