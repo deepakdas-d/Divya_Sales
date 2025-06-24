@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:flutter/material.dart';
 import 'package:sales/Auth/Signin.dart';
-import 'package:sales/Lead_Management/controller/Lead_Management.dart';
+import 'package:sales/Lead_Management/Lead_Management.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
