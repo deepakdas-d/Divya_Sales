@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:http/http.dart';
 import 'package:sales/Auth/Signin.dart';
 import 'package:sales/Screens/complaint.dart';
 import 'package:sales/Screens/followup.dart';
@@ -12,10 +11,19 @@ import 'package:sales/Screens/profile.dart';
 import 'package:sales/Screens/review.dart';
 import 'package:sales/firebase_options.dart';
 import 'package:sales/Screens/home.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print('🔔 Background message: ${message.messageId}');
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  await FirebaseMessaging.instance.requestPermission();
+
   runApp(MyApp());
 }
 

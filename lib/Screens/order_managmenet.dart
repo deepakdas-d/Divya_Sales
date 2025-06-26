@@ -773,6 +773,6 @@ class _OrderManagmenetState extends State<OrderManagmenet> {
           style: TextStyle(fontSize: 24, color: Color(0xFF2E3192)),
         ),
       ),
-     );
+    );
   }
 }
