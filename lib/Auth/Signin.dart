@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sales/Auth/Signup.dart';
 import 'package:sales/Auth/forgot_password.dart';
-
 import 'package:sales/Controller/sign_in_controller.dart';
 import 'package:sales/Screens/home.dart';
-
 
 class Signin extends StatelessWidget {
   final controller = Get.put(SigninController());
@@ -55,7 +52,7 @@ class Signin extends StatelessWidget {
                     ),
                     SizedBox(height: 5),
                     Text(
-                      "SIGN IN",
+                      "SALES",
                       style: TextStyle(
                         fontSize: MediaQuery.of(context).size.height * 0.025,
                         color: Color.fromARGB(255, 63, 97, 209),
@@ -146,54 +143,50 @@ class Signin extends StatelessWidget {
                   ),
                 ),
               ),
-              Positioned(
-                bottom: MediaQuery.of(context).size.height * 0.3,
-                right: 30,
-                child: Obx(
-                  () => TextButton(
-                    onPressed:
-                        (controller.isInputValid.value &&
-                            !controller.isInputEmpty.value)
-                        ? () async {
-                            final input =
-                                controller.emailOrPhoneController.text;
-                            String? email;
-                            if (input.isEmail) {
-                              email = input;
-                            } else if (input.isPhoneNumber) {
-                              email = await controller.getEmailFromPhone(input);
-                              if (email == null) {
-                                Get.snackbar(
-                                  "Error",
-                                  "No account found for this phone number",
-                                );
-                                return;
-                              }
-                            } else {
-                              Get.snackbar(
-                                "Error",
-                                "Invalid email or phone number",
-                              );
-                              return;
-                            }
+              // Positioned(
+              //   bottom: MediaQuery.of(context).size.height * 0.3,
+              //   right: 30,
+              //   child: Obx(
+              //     () => TextButton(
+              //       onPressed:
+              //           (controller.isInputValid.value &&
+              //               !controller.isInputEmpty.value)
+              //           ? () async {
+              //               final input =
+              //                   controller.emailOrPhoneController.text;
+              //               String? email;
+              //               if (input.isEmail) {
+              //                 email = input;
+              //               } else if (input.isPhoneNumber) {
+              //                 email = await controller.getEmailFromPhone(input);
+              //                 if (email == null) {
+              //                   Get.snackbar(
+              //                     "Error",
+              //                     "No account found for this phone number",
+              //                   );
+              //                   return;
+              //                 }
+              //               } else {
+              //                 Get.snackbar(
+              //                   "Error",
+              //                   "Invalid email or phone number",
+              //                 );
+              //                 return;
+              //               }
 
-                            Get.to(() => ForgotPasswordPage(email: email!));
-                          }
-                        : null,
-                    child: Text(
-                      "Forgot Password?",
-                      style: TextStyle(
-                        fontSize: MediaQuery.of(context).size.width * .036,
-                        color:
-                            (controller.isInputValid.value &&
-                                !controller.isInputEmpty.value)
-                            ? Colors.blue
-                            : Colors.grey,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              //               Get.to() => ForgotPasswordPage();
+              //             }
+              //           : null,
+              //       child: Text(
+              //         "Forgot Password?",
+              //         style: TextStyle(
+              //           fontSize: MediaQuery.of(context).size.width * .036,
+              //           color: Colors.blue,
+              //         ),
+              //       ),
+              //     ),
+              //   ),
+              // ),
               Positioned(
                 bottom: MediaQuery.of(context).size.height * 0.22,
                 left: 30,
@@ -235,7 +228,10 @@ class Signin extends StatelessWidget {
                           backgroundColor: Colors.yellow,
                         );
                       } else {
-                        Get.snackbar("Login Failed", result);
+                        Get.snackbar(
+                          "Login Failed",
+                          "Please Enter valid email, phone number, or password",
+                        );
                       }
                     },
                     child: Text(
@@ -245,34 +241,34 @@ class Signin extends StatelessWidget {
                   ),
                 ),
               ),
-              Positioned(
-                bottom: MediaQuery.of(context).size.height * 0.15,
-                left: 0,
-                right: 0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Don't have an account?",
-                      style: TextStyle(
-                        color: Color(0xFF030047),
-                        fontSize: MediaQuery.of(context).size.width * .04,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => Get.offAll(() => Signup()),
-                      child: Text(
-                        "Create one now",
-                        style: TextStyle(
-                          color: Color(0xFFFFCC3E),
-                          fontWeight: FontWeight.bold,
-                          fontSize: MediaQuery.of(context).size.width * .04,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // Positioned(
+              //   bottom: MediaQuery.of(context).size.height * 0.15,
+              //   left: 0,
+              //   right: 0,
+              //   child: Row(
+              //     mainAxisAlignment: MainAxisAlignment.center,
+              //     children: [
+              //       Text(
+              //         "Don't have an account?",
+              //         style: TextStyle(
+              //           color: Color(0xFF030047),
+              //           fontSize: MediaQuery.of(context).size.width * .04,
+              //         ),
+              //       ),
+              //       TextButton(
+              //         onPressed: () => Get.offAll(() => Signup()),
+              //         child: Text(
+              //           "Create one now",
+              //           style: TextStyle(
+              //             color: Color(0xFFFFCC3E),
+              //             fontWeight: FontWeight.bold,
+              //             fontSize: MediaQuery.of(context).size.width * .04,
+              //           ),
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
             ],
           ),
         ),

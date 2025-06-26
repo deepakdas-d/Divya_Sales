@@ -18,24 +18,61 @@ class LeadManagementController extends GetxController {
   var followUpDate = Rxn<DateTime>();
   var productImageUrl = Rxn<String>();
   var productIdList = <String>[].obs;
+  final makerList =
+      <Map<String, dynamic>>[].obs; // each map: {id: ..., name: ...}
+  final selectedMakerId = RxnString();
   final statusList = ['HOT', 'WARM', 'COOL'].obs;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  var productStockMap = <String, int>{}.obs;
 
   @override
   void onInit() {
     super.onInit();
+
     fetchProducts();
+    fetchMakers();
+  }
+
+  Future<void> fetchMakers() async {
+    try {
+      // Add loading state
+      makerList.clear(); // Clear existing data
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'maker')
+          .get();
+
+      makerList.value = snapshot.docs.map((doc) {
+        return {'id': doc.id, 'name': doc['name'] ?? 'Unknown'};
+      }).toList();
+
+      if (makerList.isEmpty) {
+        Get.snackbar('Warning', 'No makers found');
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to load makers: $e');
+    }
   }
 
   Future<void> fetchProducts() async {
     try {
       final snapshot = await _firestore.collection('products').get();
-      final products = snapshot.docs
-          .map((doc) => doc.data()['id']?.toString() ?? doc.id)
-          .toList();
+
+      final products = <String>[];
+      final stockMap = <String, int>{};
+
+      for (var doc in snapshot.docs) {
+        final id = doc.data()['id']?.toString() ?? doc.id;
+        final stock = doc.data()['stock'] ?? 0;
+        products.add(id);
+        stockMap[id] = stock;
+      }
 
       productIdList.assignAll(products);
+      productStockMap.assignAll(stockMap);
+
       print('Fetched product IDs: $products');
+      print('Fetched product stock: $stockMap');
     } catch (e) {
       Get.snackbar('Error', 'Error fetching products: $e');
     }
@@ -68,6 +105,30 @@ class LeadManagementController extends GetxController {
     }
   }
 
+  Future<String> generateFormattedId({
+    required String collectionName,
+    required String prefix,
+  }) async {
+    final snapshot = await _firestore
+        .collection(collectionName)
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .get();
+
+    int lastNumber = 0;
+
+    if (snapshot.docs.isNotEmpty) {
+      final lastId = snapshot.docs.first.data()['customId'] as String?;
+      if (lastId != null) {
+        final numberPart = int.tryParse(lastId.replaceAll(prefix, '')) ?? 0;
+        lastNumber = numberPart;
+      }
+    }
+
+    final newNumber = lastNumber + 1;
+    return '$prefix${newNumber.toString().padLeft(5, '0')}';
+  }
+
   Future<void> saveLead() async {
     if (!formKey.currentState!.validate()) {
       Get.snackbar('Error', 'Please fill all required fields correctly');
@@ -93,7 +154,13 @@ class LeadManagementController extends GetxController {
 
       final productDocId = querySnapshot.docs.first.id;
 
-      await _firestore.collection('Leads').add({
+      final leadId = await generateFormattedId(
+        collectionName: 'Leads',
+        prefix: 'LEA',
+      );
+      final newDocRef = _firestore.collection('Leads').doc();
+      await newDocRef.set({
+        'leadId': leadId,
         'name': nameController.text,
         'place': placeController.text,
         'address': addressController.text,
@@ -119,7 +186,7 @@ class LeadManagementController extends GetxController {
   }
 
   Future<void> placeOrder() async {
-    if (!formKey.currentState!.validate()) {
+    if (!formKey.currentState!.validate() || selectedMakerId.value == null) {
       Get.snackbar('Error', 'Please fill all required fields correctly');
       return;
     }
@@ -136,9 +203,16 @@ class LeadManagementController extends GetxController {
         return;
       }
 
-      final productDocId = querySnapshot.docs.first.id;
+      final productDoc = querySnapshot.docs.first;
+      final docId = productDoc.id; // This is the Firestore document ID
+      final productId =
+          productDoc['id']; // This is the 'id' field inside the document
+      print("Document ID: $docId");
+      print("Product ID field: $productId");
+      final newOrderId = await _generateCustomOrderId();
 
       await _firestore.collection('Orders').add({
+        'orderId': newOrderId,
         'name': nameController.text,
         'place': placeController.text,
         'address': addressController.text,
@@ -146,12 +220,13 @@ class LeadManagementController extends GetxController {
         'phone2': phone2Controller.text.isNotEmpty
             ? phone2Controller.text
             : null,
-        'productNo': productDocId,
+        'productNo': productId,
         'nos': nosController.text,
         'remark': remarkController.text.isNotEmpty
             ? remarkController.text
             : null,
         'status': selectedStatus.value,
+        'makerId': selectedMakerId.value, // Add maker ID
         'followUpDate': followUpDate.value != null
             ? Timestamp.fromDate(followUpDate.value!)
             : null,
@@ -165,6 +240,44 @@ class LeadManagementController extends GetxController {
     }
   }
 
+  Future<String> _generateCustomOrderId() async {
+    final snapshot = await _firestore
+        .collection('Orders')
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .get();
+
+    int lastNumber = 0;
+
+    if (snapshot.docs.isNotEmpty) {
+      final lastId = snapshot.docs.first.data()['orderId'] as String?;
+      if (lastId != null && lastId.startsWith('ORD')) {
+        final numberPart = int.tryParse(lastId.replaceAll('ORD', '')) ?? 0;
+        lastNumber = numberPart;
+      }
+    }
+
+    final newNumber = lastNumber + 1;
+    return 'ORD${newNumber.toString().padLeft(5, '0')}';
+  }
+
+  bool isSaveButtonEnabled() {
+    if (selectedStatus.value == null)
+      return false; // Disable if status is -- Select --
+    return selectedStatus.value != 'HOT';
+  }
+
+  bool isOrderButtonEnabled() {
+    if (selectedStatus.value == null)
+      return false; // Disable if status is -- Select --
+    final enteredNos = int.tryParse(nosController.text) ?? 0;
+    final availableStock = productStockMap[selectedProductId.value] ?? 0;
+
+    return selectedStatus.value == 'HOT' &&
+        followUpDate.value == null &&
+        enteredNos <= availableStock;
+  }
+
   void clearForm() {
     nameController.clear();
     placeController.clear();
@@ -175,6 +288,7 @@ class LeadManagementController extends GetxController {
     remarkController.clear();
     selectedProductId.value = null;
     selectedStatus.value = null;
+    selectedMakerId.value = null; // Reset maker selection
     followUpDate.value = null;
     productImageUrl.value = null;
   }
@@ -198,8 +312,9 @@ class LeadManagementController extends GetxController {
 
   String? validatePhone(String? value) {
     if (value == null || value.isEmpty) return 'Phone is required';
-    if (!RegExp(r'^\d{10}$').hasMatch(value))
+    if (!RegExp(r'^\d{10}$').hasMatch(value)) {
       return 'Enter valid 10-digit phone number';
+    }
     return null;
   }
 
@@ -215,6 +330,15 @@ class LeadManagementController extends GetxController {
   String? validateNos(String? value) {
     if (value == null || value.isEmpty) return 'NOS is required';
     if (!RegExp(r'^\d+$').hasMatch(value)) return 'Enter valid number';
+
+    final enteredNos = int.tryParse(value);
+    final selectedProductId = this.selectedProductId.value;
+    final availableStock = productStockMap[selectedProductId] ?? 0;
+
+    if (enteredNos != null && enteredNos > availableStock) {
+      return 'Only $availableStock in stock';
+    }
+
     return null;
   }
 
