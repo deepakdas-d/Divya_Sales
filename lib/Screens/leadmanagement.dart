@@ -3,7 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:sales/Controller/lead_controller.dart';
+import 'package:sales/Lead_Management/controller/lead_management_controller.dart';
 
 class LeadManagement extends StatelessWidget {
   const LeadManagement({super.key});
