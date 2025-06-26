@@ -278,6 +278,19 @@ class Home extends StatelessWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Get.offAllNamed('/leadlist'); // ✅ Correct usage
+                    },
+                    child: const Text(
+                      'Details',
+                      style: TextStyle(fontSize: 14, color: Color(0xFF3B82F6)),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
