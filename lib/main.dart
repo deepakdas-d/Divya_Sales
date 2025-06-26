@@ -5,11 +5,13 @@ import 'package:get/get.dart';
 import 'package:sales/Auth/Signin.dart';
 import 'package:sales/Screens/complaint.dart';
 import 'package:sales/Screens/followup.dart';
+import 'package:sales/Screens/lead_list.dart';
 import 'package:sales/Screens/leadmanagement.dart';
 import 'package:sales/Screens/order_managmenet.dart';
 import 'package:sales/Screens/profile.dart';
 import 'package:sales/Screens/review.dart';
 import 'package:sales/firebase_options.dart';
+
 import 'package:sales/Screens/home.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
@@ -43,13 +45,14 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       getPages: [
         GetPage(name: '/', page: () => const AuthWrapper()),
-        GetPage(name: "/leadmanagment", page: () => Leadmanagement()),
+        GetPage(name: "/leadmanagment", page: () => LeadManagement()),
         GetPage(name: "/followup", page: () => const followup()),
         GetPage(name: "/ordermanagement", page: () => OrderManagmenet()),
         GetPage(name: "/review", page: () => Review()),
         GetPage(name: "/complaint", page: () => Complaint()),
         GetPage(name: "/profile", page: () => Profile()),
         GetPage(name: "/login", page: () => Signin()),
+        GetPage(name: '/leadlist', page: () => LeadList()),
       ],
     );
   }
