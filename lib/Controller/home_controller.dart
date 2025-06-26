@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:get/get_state_manager/src/simple/get_controllers.dart';
 
@@ -22,4 +24,29 @@ class HomeController extends GetxController {
   void toggleMenu() {
     isMenuOpen.value = !isMenuOpen.value;
   }
+
+  void setLoading(bool loading) {
+    isLoading.value = loading;
+  }
+
+
+Future<String> fetchUserName() async {
+  try {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return 'Guest';
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    if (doc.exists && doc.data() != null) {
+      return doc.data()!['name'] ?? 'User';
+    } else {
+      return 'User';
+    }
+  } catch (e) {
+    return 'User';
+  }
+}
 }

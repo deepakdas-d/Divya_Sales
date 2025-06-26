@@ -13,10 +13,19 @@ import 'package:sales/Screens/review.dart';
 import 'package:sales/firebase_options.dart';
 
 import 'package:sales/Screens/home.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print('🔔 Background message: ${message.messageId}');
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  await FirebaseMessaging.instance.requestPermission();
+
   runApp(MyApp());
 }
 
