@@ -101,11 +101,25 @@ class LeadManagement extends StatelessWidget {
 
               const SizedBox(height: 16),
               Center(
-                child: Obx(
-                  () => ClipRRect(
+                child: Obx(() {
+                  final imageUrl = controller.productImageUrl.value;
+                  if (imageUrl == null || imageUrl.isEmpty) {
+                    return Container(
+                      width: screenHeight * 0.3,
+                      height: screenHeight * 0.3,
+                      color: Colors.grey.shade100,
+                      child: const Center(
+                        child: Text(
+                          'No Image Available',
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                        ),
+                      ),
+                    );
+                  }
+                  return ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: CachedNetworkImage(
-                      imageUrl: controller.productImageUrl.value ?? '',
+                      imageUrl: imageUrl,
                       width: screenHeight * 0.3,
                       height: screenHeight * 0.3,
                       fit: BoxFit.cover,
@@ -131,8 +145,8 @@ class LeadManagement extends StatelessWidget {
                         ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                }),
               ),
               Obx(() {
                 final productId = controller.selectedProductId.value;
@@ -160,8 +174,10 @@ class LeadManagement extends StatelessWidget {
               buildLabel("Status:", screenHeight),
               Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: Obx(
-                  () => DropdownButtonFormField<String>(
+                child: Obx(() {
+                  final isEnabled = controller.selectedProductId.value != null;
+
+                  return DropdownButtonFormField<String>(
                     value: controller.selectedStatus.value,
                     hint: const Text("Select Status"),
                     items: [
@@ -177,33 +193,32 @@ class LeadManagement extends StatelessWidget {
                             DropdownMenuItem(value: item, child: Text(item)),
                       ),
                     ],
-                    onChanged: (value) =>
-                        controller.selectedStatus.value = value,
+                    onChanged: isEnabled
+                        ? (value) => controller.selectedStatus.value = value
+                        : null, // disable if no product selected
                     decoration: dropdownDecoration(),
                     validator: (value) =>
                         value == null ? 'Status is required' : null,
-                  ),
-                ),
+                    disabledHint: const Text(
+                      "Select a product first",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  );
+                }),
               ),
-
-              buildLabel("Follow Up Date:", screenHeight),
+              buildLabel("Maker:", screenHeight),
               Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: Obx(
-                  () => InkWell(
-                    onTap: () async {
-                      DateTime? picked = await showDatePicker(
-                        context: context,
-                        initialDate:
-                            controller.followUpDate.value ?? DateTime.now(),
-                        firstDate: DateTime(2023),
-                        lastDate: DateTime(2030),
-                      );
-                      if (picked != null) {
-                        controller.followUpDate.value = picked;
-                      }
-                    },
-                    child: Container(
+                child: Obx(() {
+                  final isEnabled =
+                      controller.selectedProductId.value != null &&
+                      controller.selectedStatus.value == 'HOT';
+                  final isLoading =
+                      controller.makerList.isEmpty &&
+                      !controller.makerList.isNull;
+
+                  if (isLoading) {
+                    return Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 16,
@@ -213,67 +228,174 @@ class LeadManagement extends StatelessWidget {
                         borderRadius: BorderRadius.circular(30),
                         border: Border.all(color: Colors.transparent),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            controller.followUpDate.value == null
-                                ? "Select Date"
-                                : DateFormat(
-                                    'dd-MM-yyyy',
-                                  ).format(controller.followUpDate.value!),
-                            style: const TextStyle(color: Colors.black87),
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFF6366F1),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return DropdownButtonFormField<String>(
+                    value: controller.selectedMakerId.value,
+                    hint: const Text("Select Maker"),
+                    items: [
+                      const DropdownMenuItem<String>(
+                        value: null,
+                        child: Text(
+                          "-- Select --",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                      ...controller.makerList.map((maker) {
+                        return DropdownMenuItem<String>(
+                          value: maker['id'],
+                          child: Text(maker['name']),
+                        );
+                      }).toList(),
+                    ],
+                    onChanged: isEnabled
+                        ? (value) {
+                            controller.selectedMakerId.value = value;
+                          }
+                        : null,
+                    decoration: dropdownDecoration(),
+                    validator: (value) =>
+                        value == null &&
+                            controller.selectedStatus.value == 'HOT'
+                        ? 'Please select a maker'
+                        : null,
+                    disabledHint: Text(
+                      controller.selectedProductId.value == null
+                          ? "Select a product first"
+                          : "Maker is only needed for HOT status",
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  );
+                }),
+              ),
+
+              buildLabel("Follow Up Date:", screenHeight),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Obx(() {
+                  final selectedStatus = controller.selectedStatus.value;
+                  final isDisabled =
+                      selectedStatus == null ||
+                      selectedStatus.isEmpty ||
+                      selectedStatus == "HOT";
+
+                  return AbsorbPointer(
+                    absorbing: isDisabled, // disables interaction
+                    child: Opacity(
+                      opacity: isDisabled ? 0.6 : 1.0, // grays out visually
+                      child: InkWell(
+                        onTap: () async {
+                          DateTime today = DateTime.now();
+                          DateTime onlyDate = DateTime(
+                            today.year,
+                            today.month,
+                            today.day,
+                          );
+
+                          DateTime? picked = await showDatePicker(
+                            context: context,
+                            initialDate:
+                                controller.followUpDate.value ?? onlyDate,
+                            firstDate: onlyDate,
+                            lastDate: DateTime(2030),
+                          );
+
+                          if (picked != null) {
+                            controller.followUpDate.value = picked;
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
                           ),
-                          if (controller.followUpDate.value != null)
-                            GestureDetector(
-                              onTap: () => controller.followUpDate.value = null,
-                              child: const Icon(
-                                Icons.clear,
-                                color: Colors.grey,
-                                size: 20,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE1E5F2),
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(color: Colors.transparent),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                controller.followUpDate.value == null
+                                    ? "Select Date"
+                                    : DateFormat(
+                                        'dd-MM-yyyy',
+                                      ).format(controller.followUpDate.value!),
+                                style: const TextStyle(color: Colors.black87),
                               ),
-                            ),
-                        ],
+                              if (controller.followUpDate.value != null)
+                                GestureDetector(
+                                  onTap: () {
+                                    if (!isDisabled) {
+                                      controller.followUpDate.value = null;
+                                    }
+                                  },
+                                  child: const Icon(
+                                    Icons.clear,
+                                    color: Colors.grey,
+                                    size: 20,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                }),
               ),
 
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  ElevatedButton(
-                    onPressed: controller.saveLead,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
+                  Obx(
+                    () => ElevatedButton(
+                      onPressed: controller.isSaveButtonEnabled()
+                          ? controller.saveLead
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
                       ),
-                    ),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        child: Text("Save"),
                       ),
-                      child: Text("Save"),
                     ),
                   ),
-                  ElevatedButton(
-                    onPressed: controller.placeOrder,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
+                  Obx(
+                    () => ElevatedButton(
+                      onPressed: controller.isOrderButtonEnabled()
+                          ? controller.placeOrder
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
                       ),
-                    ),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        child: Text("Order Now"),
                       ),
-                      child: Text("Order Now"),
                     ),
                   ),
                 ],

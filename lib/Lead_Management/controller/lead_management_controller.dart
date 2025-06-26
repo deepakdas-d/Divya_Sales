@@ -18,6 +18,9 @@ class LeadManagementController extends GetxController {
   var followUpDate = Rxn<DateTime>();
   var productImageUrl = Rxn<String>();
   var productIdList = <String>[].obs;
+  final makerList =
+      <Map<String, dynamic>>[].obs; // each map: {id: ..., name: ...}
+  final selectedMakerId = RxnString();
   final statusList = ['HOT', 'WARM', 'COOL'].obs;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   var productStockMap = <String, int>{}.obs;
@@ -25,19 +28,42 @@ class LeadManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+
     fetchProducts();
+    fetchMakers();
+  }
+
+  Future<void> fetchMakers() async {
+    try {
+      // Add loading state
+      makerList.clear(); // Clear existing data
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'maker')
+          .get();
+
+      makerList.value = snapshot.docs.map((doc) {
+        return {'id': doc.id, 'name': doc['name'] ?? 'Unknown'};
+      }).toList();
+
+      if (makerList.isEmpty) {
+        Get.snackbar('Warning', 'No makers found');
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to load makers: $e');
+    }
   }
 
   Future<void> fetchProducts() async {
     try {
       final snapshot = await _firestore.collection('products').get();
+
       final products = <String>[];
       final stockMap = <String, int>{};
 
       for (var doc in snapshot.docs) {
-        final data = doc.data();
-        final id = data['id']?.toString() ?? doc.id;
-        final stock = data['stock'] is int ? data['stock'] : 0;
+        final id = doc.data()['id']?.toString() ?? doc.id;
+        final stock = doc.data()['stock'] ?? 0;
         products.add(id);
         stockMap[id] = stock;
       }
@@ -61,14 +87,19 @@ class LeadManagementController extends GetxController {
           .get();
 
       if (querySnapshot.docs.isEmpty) {
+        print('No document found for product ID: $productId');
         productImageUrl.value = null;
         return;
       }
 
-      final data = querySnapshot.docs.first.data();
-      final imageUrl = data['imageUrl']?.toString();
+      final doc = querySnapshot.docs.first;
+      final data = doc.data();
+      final imageUrl = data['imageUrl'] as String?;
+      print('Fetched imageUrl for $productId: $imageUrl');
+
       productImageUrl.value = imageUrl;
     } catch (e) {
+      print('Error fetching image for $productId: $e');
       productImageUrl.value = null;
       Get.snackbar('Error', 'Error loading image: $e');
     }
@@ -87,36 +118,15 @@ class LeadManagementController extends GetxController {
     int lastNumber = 0;
 
     if (snapshot.docs.isNotEmpty) {
-      final lastIdRaw = snapshot.docs.first.data()['customId'];
-      if (lastIdRaw != null && lastIdRaw is String) {
-        final digits = RegExp(r'\d+').firstMatch(lastIdRaw)?.group(0);
-        lastNumber = int.tryParse(digits ?? '0') ?? 0;
+      final lastId = snapshot.docs.first.data()['customId'] as String?;
+      if (lastId != null) {
+        final numberPart = int.tryParse(lastId.replaceAll(prefix, '')) ?? 0;
+        lastNumber = numberPart;
       }
     }
 
     final newNumber = lastNumber + 1;
-    return '$prefix-${newNumber.toString().padLeft(5, '0')}';
-  }
-
-  Future<String> _generateCustomOrderId() async {
-    final snapshot = await _firestore
-        .collection('Orders')
-        .orderBy('createdAt', descending: true)
-        .limit(1)
-        .get();
-
-    int lastNumber = 0;
-
-    if (snapshot.docs.isNotEmpty) {
-      final lastIdRaw = snapshot.docs.first.data()['orderId'];
-      if (lastIdRaw != null && lastIdRaw is String) {
-        final digits = RegExp(r'\d+').firstMatch(lastIdRaw)?.group(0);
-        lastNumber = int.tryParse(digits ?? '0') ?? 0;
-      }
-    }
-
-    final newNumber = lastNumber + 1;
-    return 'ORD${newNumber.toString().padLeft(5, '0')}';
+    return '$prefix${newNumber.toString().padLeft(5, '0')}';
   }
 
   Future<void> saveLead() async {
@@ -143,13 +153,14 @@ class LeadManagementController extends GetxController {
       }
 
       final productDocId = querySnapshot.docs.first.id;
+
       final leadId = await generateFormattedId(
         collectionName: 'Leads',
         prefix: 'LEA',
       );
-
-      await _firestore.collection('Leads').add({
-        'customId': leadId,
+      final newDocRef = _firestore.collection('Leads').doc();
+      await newDocRef.set({
+        'leadId': leadId,
         'name': nameController.text,
         'place': placeController.text,
         'address': addressController.text,
@@ -175,7 +186,7 @@ class LeadManagementController extends GetxController {
   }
 
   Future<void> placeOrder() async {
-    if (!formKey.currentState!.validate()) {
+    if (!formKey.currentState!.validate() || selectedMakerId.value == null) {
       Get.snackbar('Error', 'Please fill all required fields correctly');
       return;
     }
@@ -192,7 +203,12 @@ class LeadManagementController extends GetxController {
         return;
       }
 
-      final productDocId = querySnapshot.docs.first.id;
+      final productDoc = querySnapshot.docs.first;
+      final docId = productDoc.id; // This is the Firestore document ID
+      final productId =
+          productDoc['id']; // This is the 'id' field inside the document
+      print("Document ID: $docId");
+      print("Product ID field: $productId");
       final newOrderId = await _generateCustomOrderId();
 
       await _firestore.collection('Orders').add({
@@ -204,12 +220,13 @@ class LeadManagementController extends GetxController {
         'phone2': phone2Controller.text.isNotEmpty
             ? phone2Controller.text
             : null,
-        'productNo': productDocId,
+        'productNo': productId,
         'nos': nosController.text,
         'remark': remarkController.text.isNotEmpty
             ? remarkController.text
             : null,
         'status': selectedStatus.value,
+        'makerId': selectedMakerId.value, // Add maker ID
         'followUpDate': followUpDate.value != null
             ? Timestamp.fromDate(followUpDate.value!)
             : null,
@@ -223,6 +240,44 @@ class LeadManagementController extends GetxController {
     }
   }
 
+  Future<String> _generateCustomOrderId() async {
+    final snapshot = await _firestore
+        .collection('Orders')
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .get();
+
+    int lastNumber = 0;
+
+    if (snapshot.docs.isNotEmpty) {
+      final lastId = snapshot.docs.first.data()['orderId'] as String?;
+      if (lastId != null && lastId.startsWith('ORD')) {
+        final numberPart = int.tryParse(lastId.replaceAll('ORD', '')) ?? 0;
+        lastNumber = numberPart;
+      }
+    }
+
+    final newNumber = lastNumber + 1;
+    return 'ORD${newNumber.toString().padLeft(5, '0')}';
+  }
+
+  bool isSaveButtonEnabled() {
+    if (selectedStatus.value == null)
+      return false; // Disable if status is -- Select --
+    return selectedStatus.value != 'HOT';
+  }
+
+  bool isOrderButtonEnabled() {
+    if (selectedStatus.value == null)
+      return false; // Disable if status is -- Select --
+    final enteredNos = int.tryParse(nosController.text) ?? 0;
+    final availableStock = productStockMap[selectedProductId.value] ?? 0;
+
+    return selectedStatus.value == 'HOT' &&
+        followUpDate.value == null &&
+        enteredNos <= availableStock;
+  }
+
   void clearForm() {
     nameController.clear();
     placeController.clear();
@@ -233,6 +288,7 @@ class LeadManagementController extends GetxController {
     remarkController.clear();
     selectedProductId.value = null;
     selectedStatus.value = null;
+    selectedMakerId.value = null; // Reset maker selection
     followUpDate.value = null;
     productImageUrl.value = null;
   }
