@@ -223,6 +223,53 @@ class DetailPage extends StatelessWidget {
             ],
 
             const SizedBox(height: 32),
+
+            // Action Buttons
+            // Row(
+            //   children: [
+            //     Expanded(
+            //       child: ElevatedButton.icon(
+            //         onPressed: () {
+            //           // Implement edit functionality
+            //           ScaffoldMessenger.of(context).showSnackBar(
+            //             const SnackBar(
+            //               content: Text('Edit functionality to be implemented'),
+            //             ),
+            //           );
+            //         },
+            //         icon: const Icon(Icons.edit),
+            //         label: const Text('Edit'),
+            //         style: ElevatedButton.styleFrom(
+            //           backgroundColor: Colors.blue.shade700,
+            //           foregroundColor: Colors.white,
+            //           padding: const EdgeInsets.symmetric(vertical: 12),
+            //         ),
+            //       ),
+            //     ),
+            //     const SizedBox(width: 16),
+            //     Expanded(
+            //       child: OutlinedButton.icon(
+            //         onPressed: () {
+            //           // Implement call functionality
+            //           ScaffoldMessenger.of(context).showSnackBar(
+            //             const SnackBar(
+            //               content: Text(
+            //                 'Calling functionality to be implemented',
+            //               ),
+            //             ),
+            //           );
+            //         },
+            //         icon: const Icon(Icons.call),
+            //         label: const Text('Call'),
+            //         style: OutlinedButton.styleFrom(
+            //           foregroundColor: Colors.blue.shade700,
+            //           side: BorderSide(color: Colors.blue.shade700),
+            //           padding: const EdgeInsets.symmetric(vertical: 12),
+            //         ),
+            //       ),
+            //     ),
+            //   ],
+            // ),
           ],
         ),
       ),
