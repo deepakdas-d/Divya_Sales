@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -152,12 +153,26 @@ class LeadManagementController extends GetxController {
         return;
       }
 
-      final productDocId = querySnapshot.docs.first.id;
+      final productDoc = querySnapshot.docs.first;
+      final docId = productDoc.id; // This is the Firestore document ID
+      final productId =
+          productDoc['id']; // This is the 'id' field inside the document
+      print("Document ID: $docId");
+      print("Product ID field: $productId");
+      final newOrderId = await _generateCustomOrderId();
 
       final leadId = await generateFormattedId(
         collectionName: 'Leads',
         prefix: 'LEA',
       );
+
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        Get.snackbar('Error', 'User not logged in');
+        return;
+      }
+      final userId = currentUser.uid;
+
       final newDocRef = _firestore.collection('Leads').doc();
       await newDocRef.set({
         'leadId': leadId,
@@ -168,7 +183,7 @@ class LeadManagementController extends GetxController {
         'phone2': phone2Controller.text.isNotEmpty
             ? phone2Controller.text
             : null,
-        'productNo': productDocId,
+        'productID': productId,
         'nos': nosController.text,
         'remark': remarkController.text.isNotEmpty
             ? remarkController.text
@@ -176,6 +191,7 @@ class LeadManagementController extends GetxController {
         'status': selectedStatus.value,
         'followUpDate': Timestamp.fromDate(followUpDate.value!),
         'createdAt': Timestamp.now(),
+        'salesmanID': userId,
       });
 
       Get.snackbar('Success', 'Lead saved successfully');
@@ -211,6 +227,13 @@ class LeadManagementController extends GetxController {
       print("Product ID field: $productId");
       final newOrderId = await _generateCustomOrderId();
 
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        Get.snackbar('Error', 'User not logged in');
+        return;
+      }
+      final userId = currentUser.uid;
+
       await _firestore.collection('Orders').add({
         'orderId': newOrderId,
         'name': nameController.text,
@@ -220,7 +243,7 @@ class LeadManagementController extends GetxController {
         'phone2': phone2Controller.text.isNotEmpty
             ? phone2Controller.text
             : null,
-        'productNo': productId,
+        'productID': productId,
         'nos': nosController.text,
         'remark': remarkController.text.isNotEmpty
             ? remarkController.text
@@ -230,6 +253,7 @@ class LeadManagementController extends GetxController {
         'followUpDate': followUpDate.value != null
             ? Timestamp.fromDate(followUpDate.value!)
             : null,
+        'salesmanID': userId,
         'createdAt': Timestamp.now(),
       });
 
@@ -319,11 +343,17 @@ class LeadManagementController extends GetxController {
   }
 
   String? validatePhone2(String? value) {
-    if (value != null &&
-        value.isNotEmpty &&
-        !RegExp(r'^\d{10}$').hasMatch(value)) {
-      return 'Enter valid 10-digit phone number';
+    if (value == null || value.isEmpty) return null; // Optional field
+
+    if (value == phoneController.text) {
+      return 'Phone 2 should be different from Phone 1';
     }
+
+    // Add other validations if needed
+    if (!RegExp(r'^\d{10}$').hasMatch(value)) {
+      return 'Enter a valid 10-digit phone number';
+    }
+
     return null;
   }
 
