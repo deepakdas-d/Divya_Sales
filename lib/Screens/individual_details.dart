@@ -276,3 +276,5 @@ class DetailPage extends StatelessWidget {
     );
   }
 }
+
+
